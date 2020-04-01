@@ -1,0 +1,73 @@
+Social Stocks Psuedo Code
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Define set of keywords for stock/index we are interested in
+Search twitter for most recent tweets related to each keyword
+
+//could we combine all tweets together, were not predicting based on keyword but sentiment of tweets realted to stock
+
+calculate the minimum creation time of all tweets //lower bound on stock data
+calculate the maximum creation time of all tweets //upper bound on stock data
+
+//will look at financial data for a whole day, the tweets wil most likely be from the middle of a day no exactly 9am/4pm
+//this causes our start_day to be min creation day+1. end_day to be max creation time-1.
+
+filter all of the tweets to only contain tweets starting within our start_day to end_day, and between 9:30am to 4pm.
+store processed tweet text and tweet creation time as a "yyyy-mm-dd hh:mm" date 
+//i'd to like to save this data so i can reuse it constantly to build the model and track how changes in parameters affect
+the MSE and residuals. Look into writing this data to a csv file directly from R after filtering.
+
+pause R script, go to Python for our financial data
+download financial data into CSV from start_day to end_day @ interval time periods
+
+load CSV in R
+
+//need to calculate the average value for each sentiment based on tweets in periods of interval
+//we will use these average values over the period to regress stock performance at the end of the period on.
+//use sentiment of tweets from 11:00am-11:15am to determine stock price at 11:15am, 11:15am-11:30am to determine stock price at 11:30am, etc. we have no way to match tweets at their exact time to a stock price at an exact time, so we take the averages over the intervals. A model parameter of interest will be how does the interval length affect accuracy of the model
+
+initialize a data frame where each column is a sentiment type and each row is an interval. we will store the avg interval value for each sentiment in the corresponding (row, col) position.
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// pseudo code to split data into the periods we need
+// this calculates the average senbtiment values for tweets in each period we have a stock price for
+
+
+interval = whatever interval length we pulled financial data at:
+lower_bound = start_time
+upper_bound = lower_bound + interval
+avg_sentiment_by_period = data.frame(ncols = 10, colnames = order of sentiments, nrows = ?)
+sum_sentiment_in_period = data.frame(ncols = 10, colnames = order of sentiments, nrow = 1)
+tweets_in_period = 0
+period = 1
+
+for tweet in filtered tweet list:
+	
+	if tweet not in range (lower bound, upper bound]: //exclusive, inlcusive
+		//calulate period average and store
+		avg_sentiment_in_period = sum_sentiment_in_period/tweets_in_period
+		avg_sentiment_by_period[period] = avg_sentiment_in_period
+
+		//reset variables
+		tweets_in_period = 0
+		sum_sentiment_in_period is set to all 0's
+		period += 1
+
+		//update bounds by hour for during the day at end of the day reset to next day 9:30 am
+		//that makes this code block a little more difficult than updating continuous variable
+		lower_bound = upper_bound
+		upper_bound = lower_bound + interval
+
+	//if tweet wasnt in the old range we update our bounds to include this tweet
+	//if it didnt need to update range we skip that step and keep calculating the current period
+	sum_sentiment_in_period += get_nrc_sentiment(tweet) //add tweets sentiment values to sum for this period
+	tweets_in_period += 1
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+avg_sentiment_by_period should be complete, will be average sentiment and mood based on tweets in each period
+//getting data points as average sentiment over period to final price over period is the most crucial part of the project
+//use this data as the basis for my regression
+//play around with this data as a time series
+//base_model <- lm(stock_price ~ sentiment_1 + ... + sentiment_10) //simple linear model 
+//try lm transforms based on how the regression graphs play out
